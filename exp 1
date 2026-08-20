@@ -1,0 +1,126 @@
+import numpy as np
+import random
+
+# 5x5 Grid
+# 0 = Empty, 1 = Dirt, -1 = Obstacle
+grid = np.array([
+    [0,  1,  0, -1,  1],
+    [0, -1,  1,  0,  0],
+    [1,  0,  0, -1,  1],
+    [0,  1, -1,  0,  0],
+    [1,  0,  1,  0,  1]
+])
+
+actions = [(-1,0), (1,0), (0,-1), (0,1)]  # Up, Down, Left, Right
+rows, cols = 5, 5
+
+# Valid movement
+def step(state, action):
+    r, c = state
+    dr, dc = actions[action]
+    nr, nc = r + dr, c + dc
+
+    if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+        return (r, c), -1
+
+    if grid[nr, nc] == -1:
+        return (r, c), -1
+
+    reward = 1 if grid[nr, nc] == 1 else 0
+    return (nr, nc), reward
+
+
+# -------------------------------
+# 1. Random Policy
+# -------------------------------
+def random_policy():
+    state = (0, 0)
+    reward = 0
+
+    for _ in range(30):
+        action = random.choice(range(4))
+        state, r = step(state, action)
+        reward += r
+
+    return reward
+
+
+# -------------------------------
+# 2. Greedy Policy
+# -------------------------------
+def greedy_policy():
+    state = (0, 0)
+    reward = 0
+
+    for _ in range(30):
+        best = []
+        max_reward = -999
+
+        for a in range(4):
+            new_state, r = step(state, a)
+            if r > max_reward:
+                max_reward = r
+                best = [a]
+            elif r == max_reward:
+                best.append(a)
+
+        action = random.choice(best)
+        state, r = step(state, action)
+        reward += r
+
+    return reward
+
+
+# -------------------------------
+# 3. Q-Learning Policy
+# -------------------------------
+Q = np.zeros((rows, cols, 4))
+
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.2
+
+for episode in range(1000):
+    state = (0, 0)
+
+    for _ in range(50):
+        r, c = state
+
+        # Epsilon-greedy action
+        if random.random() < epsilon:
+            action = random.randint(0, 3)
+        else:
+            action = np.argmax(Q[r, c])
+
+        next_state, reward = step(state, action)
+        nr, nc = next_state
+
+        Q[r, c, action] += alpha * (
+            reward + gamma * np.max(Q[nr, nc]) -
+            Q[r, c, action]
+        )
+
+        state = next_state
+
+
+# Test learned policy
+def q_learning_policy():
+    state = (0, 0)
+    total_reward = 0
+
+    for _ in range(30):
+        r, c = state
+        action = np.argmax(Q[r, c])
+
+        state, reward = step(state, action)
+        total_reward += reward
+
+    return total_reward
+
+
+# -------------------------------
+# Compare Policies
+# -------------------------------
+print("Random Policy Reward :", random_policy())
+print("Greedy Policy Reward :", greedy_policy())
+print("Q-Learning Reward    :", q_learning_policy())
