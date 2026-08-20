@@ -1,0 +1,140 @@
+#19) Use Monte Carlo methods to evaluate a policy for predicting customer churn in a
+#subscription-based service. Implement this policy evaluation in Python and analyze the
+#results.
+import numpy as np
+import random
+
+# Customer states
+states = [
+    "Low Risk",
+    "Medium Risk",
+    "High Risk"
+]
+
+# Actions
+actions = [
+    "No Action",
+    "Discount",
+    "Retention Call"
+]
+
+# Rewards:
+# Positive = customer retained
+# Negative = customer churns/cost
+reward_table = {
+    "Low Risk":    [5, 3, 2],
+    "Medium Risk": [2, 6, 4],
+    "High Risk":   [-5, 7, 8]
+}
+
+# Fixed policy
+# 0 = No Action, 1 = Discount, 2 = Retention Call
+policy = {
+    "Low Risk": 0,
+    "Medium Risk": 1,
+    "High Risk": 2
+}
+
+gamma = 0.9
+episodes = 5000
+
+
+# --------------------------------
+# Simulate customer transition
+# --------------------------------
+def next_customer_state(state, action):
+
+    # Probability of churn/remaining
+    if state == "Low Risk":
+        probs = [0.8, 0.15, 0.05]
+
+    elif state == "Medium Risk":
+        probs = [0.2, 0.6, 0.2]
+
+    else:
+        probs = [0.1, 0.3, 0.6]
+
+    return np.random.choice(states, p=probs)
+
+
+# --------------------------------
+# Monte Carlo Policy Evaluation
+# --------------------------------
+returns = {state: [] for state in states}
+
+for episode in range(episodes):
+
+    state = random.choice(states)
+    episode_data = []
+
+    for step in range(10):
+
+        action = policy[state]
+
+        reward = reward_table[state][action]
+
+        episode_data.append((state, reward))
+
+        state = next_customer_state(
+            state, action
+        )
+
+    # Calculate return for each state
+    G = 0
+
+    visited = set()
+
+    for state, reward in reversed(episode_data):
+
+        G = reward + gamma * G
+
+        # First-visit Monte Carlo
+        if state not in visited:
+            returns[state].append(G)
+            visited.add(state)
+
+
+# --------------------------------
+# Calculate Value Function
+# --------------------------------
+V = {}
+
+for state in states:
+    V[state] = np.mean(returns[state])
+
+
+# --------------------------------
+# Display Results
+# --------------------------------
+print("Monte Carlo Policy Evaluation")
+print("--------------------------------")
+
+for state in states:
+    print(
+        state,
+        "-> Action:",
+        actions[policy[state]],
+        "| Value:",
+        round(V[state], 2)
+    )
+
+
+# --------------------------------
+# Analysis
+# --------------------------------
+best_state = max(V, key=V.get)
+worst_state = min(V, key=V.get)
+
+print("\nAnalysis")
+print("--------")
+print(
+    "Highest-value state:",
+    best_state,
+    "(", round(V[best_state], 2), ")"
+)
+
+print(
+    "Lowest-value state:",
+    worst_state,
+    "(", round(V[worst_state], 2), ")"
+)
