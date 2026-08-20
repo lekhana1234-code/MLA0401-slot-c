@@ -1,0 +1,156 @@
+import numpy as np
+
+# Grid
+# 0 = Free cell
+# 1 = Obstacle
+# 2 = Goal
+grid = np.array([
+    [0, 0, 0, 1, 0],
+    [0, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0],
+    [1, 0, 1, 0, 0],
+    [0, 0, 0, 0, 2]
+])
+
+rows, cols = grid.shape
+gamma = 0.9
+
+# Actions
+actions = {
+    "U": (-1, 0),
+    "D": (1, 0),
+    "L": (0, -1),
+    "R": (0, 1)
+}
+
+V = np.zeros((rows, cols))
+
+
+# Environment transition
+def step(state, action):
+    r, c = state
+    dr, dc = actions[action]
+
+    nr, nc = r + dr, c + dc
+
+    # Boundary or obstacle
+    if (nr < 0 or nr >= rows or
+        nc < 0 or nc >= cols or
+        grid[nr, nc] == 1):
+        return state, -5
+
+    # Goal
+    if grid[nr, nc] == 2:
+        return (nr, nc), 100
+
+    # Movement cost
+    return (nr, nc), -1
+
+
+# --------------------------------
+# Bellman Optimality Equation
+# --------------------------------
+for iteration in range(1000):
+
+    new_V = V.copy()
+
+    for r in range(rows):
+        for c in range(cols):
+
+            # Ignore obstacles and goal
+            if grid[r, c] == 1 or grid[r, c] == 2:
+                continue
+
+            values = []
+
+            for action in actions:
+                next_state, reward = step(
+                    (r, c), action
+                )
+
+                nr, nc = next_state
+
+                value = reward + gamma * V[nr, nc]
+                values.append(value)
+
+            new_V[r, c] = max(values)
+
+    # Check convergence
+    if np.max(np.abs(new_V - V)) < 0.001:
+        V = new_V
+        break
+
+    V = new_V
+
+
+# --------------------------------
+# Extract Optimal Policy
+# --------------------------------
+policy = np.empty((rows, cols), dtype="<U1")
+
+for r in range(rows):
+    for c in range(cols):
+
+        if grid[r, c] == 1:
+            policy[r, c] = "X"
+
+        elif grid[r, c] == 2:
+            policy[r, c] = "G"
+
+        else:
+            best_action = None
+            best_value = -float("inf")
+
+            for action in actions:
+
+                next_state, reward = step(
+                    (r, c), action
+                )
+
+                nr, nc = next_state
+
+                value = reward + gamma * V[nr, nc]
+
+                if value > best_value:
+                    best_value = value
+                    best_action = action
+
+            policy[r, c] = best_action
+
+
+# --------------------------------
+# Display Results
+# --------------------------------
+print("Optimal State-Value Function:")
+print(np.round(V, 2))
+
+print("\nOptimal Policy:")
+
+for row in policy:
+    print(" ".join(row))
+
+
+# --------------------------------
+# Demonstrate Optimal Path
+# --------------------------------
+state = (0, 0)
+path = [state]
+
+for _ in range(30):
+
+    if grid[state] == 2:
+        break
+
+    r, c = state
+    action = policy[r, c]
+
+    state, reward = step(state, action)
+    path.append(state)
+
+    if grid[state] == 2:
+        break
+
+print("\nOptimal Path:")
+print(" -> ".join(map(str, path)))
+
+print("\nNumber of Steps:", len(path) - 1)
