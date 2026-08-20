@@ -1,0 +1,87 @@
+#9) A call center wants to optimize the assignment of customer service representatives to
+#incoming calls. Implement a Monte Carlo simulation to estimate the value function for
+#different assignment policies in Python.
+import random
+
+# Representatives
+representatives = ["Rep_1", "Rep_2", "Rep_3"]
+
+# Average service quality/reward
+quality = {
+    "Rep_1": 8,
+    "Rep_2": 6,
+    "Rep_3": 9
+}
+
+# -----------------------------
+# Assignment Policies
+# -----------------------------
+
+# Policy 1: Random assignment
+def random_policy():
+    return random.choice(representatives)
+
+# Policy 2: Best representative
+def best_policy():
+    return max(quality, key=quality.get)
+
+# Policy 3: Round-robin assignment
+counter = 0
+
+def round_robin_policy():
+    global counter
+    rep = representatives[counter % len(representatives)]
+    counter += 1
+    return rep
+
+
+# -----------------------------
+# Monte Carlo Simulation
+# -----------------------------
+def monte_carlo(policy, episodes=1000, calls=20):
+
+    total_rewards = []
+
+    for _ in range(episodes):
+
+        episode_reward = 0
+
+        for _ in range(calls):
+
+            rep = policy()
+
+            # Add random variation to service quality
+            reward = random.gauss(quality[rep], 2)
+
+            episode_reward += reward
+
+        total_rewards.append(episode_reward)
+
+    return sum(total_rewards) / len(total_rewards)
+
+
+# -----------------------------
+# Compare Policies
+# -----------------------------
+
+random_value = monte_carlo(random_policy)
+best_value = monte_carlo(best_policy)
+round_value = monte_carlo(round_robin_policy)
+
+print("Estimated Value Functions")
+print("-------------------------")
+
+print("Random Policy     :", round_value if False else random_value)
+print("Best Agent Policy :", best_value)
+print("Round-Robin Policy:", round_value)
+
+# Find best policy
+values = {
+    "Random": random_value,
+    "Best Agent": best_value,
+    "Round Robin": round_value
+}
+
+best = max(values, key=values.get)
+
+print("\nBest Assignment Policy:", best)
