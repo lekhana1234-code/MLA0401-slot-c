@@ -1,0 +1,196 @@
+#A delivery robot operates in a warehouse with predefined delivery points. Using Bellman
+#equations, compute the state-value function for navigating to each delivery point.
+#Implement this in Python and visualize the value function for different policies.
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 5x5 Warehouse
+# 0 = Free, 1 = Delivery point, -1 = Obstacle
+grid = np.array([
+    [0, 0, 0, -1, 1],
+    [0, -1, 0,  0, 0],
+    [0, 0, 0, -1, 0],
+    [1, 0, 0,  0, 0],
+    [0, 0, -1,  0, 1]
+])
+
+rows, cols = grid.shape
+gamma = 0.9
+
+actions = {
+    "U": (-1, 0),
+    "D": (1, 0),
+    "L": (0, -1),
+    "R": (0, 1)
+}
+
+
+# Get next state and reward
+def step(state, action):
+    r, c = state
+    dr, dc = actions[action]
+
+    nr, nc = r + dr, c + dc
+
+    # Wall or obstacle
+    if (nr < 0 or nr >= rows or
+        nc < 0 or nc >= cols or
+        grid[nr, nc] == -1):
+        return state, -5
+
+    # Delivery point
+    if grid[nr, nc] == 1:
+        return (nr, nc), 10
+
+    # Movement cost
+    return (nr, nc), -1
+
+
+# -------------------------
+# Value Iteration
+# -------------------------
+def value_iteration():
+    V = np.zeros((rows, cols))
+
+    for _ in range(100):
+        new_V = V.copy()
+
+        for r in range(rows):
+            for c in range(cols):
+
+                if grid[r, c] == -1:
+                    continue
+
+                values = []
+
+                for action in actions:
+                    next_state, reward = step((r, c), action)
+                    nr, nc = next_state
+
+                    values.append(
+                        reward + gamma * V[nr, nc]
+                    )
+
+                new_V[r, c] = max(values)
+
+        if np.max(abs(new_V - V)) < 0.001:
+            break
+
+        V = new_V
+
+    return V
+
+
+# -------------------------
+# Policy Evaluation
+# -------------------------
+def policy_value(policy):
+    V = np.zeros((rows, cols))
+
+    for _ in range(100):
+        new_V = V.copy()
+
+        for r in range(rows):
+            for c in range(cols):
+
+                if grid[r, c] == -1:
+                    continue
+
+                action = policy[r][c]
+
+                next_state, reward = step(
+                    (r, c), action
+                )
+
+                nr, nc = next_state
+
+                new_V[r, c] = (
+                    reward + gamma * V[nr, nc]
+                )
+
+        V = new_V
+
+    return V
+
+
+# Random policy
+random_policy = np.random.choice(
+    list(actions.keys()),
+    size=(rows, cols)
+)
+
+# Optimal policy from Bellman equation
+V_opt = value_iteration()
+
+optimal_policy = np.empty(
+    (rows, cols), dtype=str
+)
+
+for r in range(rows):
+    for c in range(cols):
+
+        if grid[r, c] == -1:
+            optimal_policy[r, c] = "X"
+            continue
+
+        best_action = None
+        best_value = -float("inf")
+
+        for action in actions:
+
+            next_state, reward = step(
+                (r, c), action
+            )
+
+            nr, nc = next_state
+
+            value = (
+                reward + gamma * V_opt[nr, nc]
+            )
+
+            if value > best_value:
+                best_value = value
+                best_action = action
+
+        optimal_policy[r, c] = best_action
+
+
+# -------------------------
+# Display Values
+# -------------------------
+print("Optimal Value Function:")
+print(np.round(V_opt, 2))
+
+print("\nOptimal Policy:")
+
+for row in optimal_policy:
+    print(" ".join(row))
+
+
+# -------------------------
+# Visualization
+# -------------------------
+plt.figure(figsize=(6, 5))
+
+plt.imshow(V_opt, cmap="viridis")
+
+plt.colorbar(label="State Value")
+plt.title("Delivery Robot Value Function")
+plt.xlabel("Column")
+plt.ylabel("Row")
+
+for r in range(rows):
+    for c in range(cols):
+        if grid[r, c] == -1:
+            text = "X"
+        elif grid[r, c] == 1:
+            text = "D"
+        else:
+            text = optimal_policy[r, c]
+
+        plt.text(c, r, text,
+                 ha="center",
+                 va="center",
+                 color="white")
+
+plt.show()
