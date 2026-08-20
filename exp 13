@@ -1,0 +1,162 @@
+#13) Implement Q-learning to develop an AI agent that plays a simple grid-based game (e.g., a
+#basic version of Pac-Man). The agent should learn to collect rewards (e.g., food) and avoid
+#penalties (e.g., ghosts). Write a Python program to train and evaluate the AI agent
+import numpy as np
+import random
+
+# 5x5 Game Grid
+# 0 = Empty, 1 = Food, -1 = Ghost
+grid = np.array([
+    [0,  1, 0,  0, 1],
+    [0,  0, 0, -1, 0],
+    [1,  0, 0,  0, 1],
+    [0, -1, 0,  0, 0],
+    [1,  0, 0,  0, 1]
+])
+
+rows, cols = grid.shape
+
+# Actions: Up, Down, Left, Right
+actions = {
+    0: (-1, 0),
+    1: (1, 0),
+    2: (0, -1),
+    3: (0, 1)
+}
+
+# Q-table
+Q = np.zeros((rows, cols, 4))
+
+# Parameters
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.2
+
+# --------------------------------
+# Environment
+# --------------------------------
+def step(state, action):
+
+    r, c = state
+    dr, dc = actions[action]
+
+    nr = r + dr
+    nc = c + dc
+
+    # Boundary
+    if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+        return state, -5, False
+
+    # Ghost
+    if grid[nr, nc] == -1:
+        return (nr, nc), -10, True
+
+    # Food
+    if grid[nr, nc] == 1:
+        return (nr, nc), 10, True
+
+    # Empty cell
+    return (nr, nc), -1, False
+
+
+# --------------------------------
+# Choose action
+# --------------------------------
+def choose_action(state):
+
+    r, c = state
+
+    if random.random() < epsilon:
+        return random.randint(0, 3)
+
+    return np.argmax(Q[r, c])
+
+
+# --------------------------------
+# Training
+# --------------------------------
+episodes = 2000
+
+for episode in range(episodes):
+
+    state = (0, 0)
+
+    for _ in range(50):
+
+        action = choose_action(state)
+
+        next_state, reward, done = step(
+            state, action
+        )
+
+        r, c = state
+        nr, nc = next_state
+
+        # Q-learning update
+        Q[r, c, action] += alpha * (
+            reward +
+            gamma * np.max(Q[nr, nc]) -
+            Q[r, c, action]
+        )
+
+        state = next_state
+
+        if done:
+            break
+
+
+# --------------------------------
+# Evaluate trained agent
+# --------------------------------
+state = (0, 0)
+total_reward = 0
+
+print("AI Agent Path:")
+
+for _ in range(20):
+
+    r, c = state
+    action = np.argmax(Q[r, c])
+
+    next_state, reward, done = step(
+        state, action
+    )
+
+    print(state, "->", next_state)
+
+    total_reward += reward
+    state = next_state
+
+    if done:
+        break
+
+print("\nTotal Reward:", total_reward)
+
+
+# --------------------------------
+# Display learned policy
+# --------------------------------
+symbols = {
+    0: "↑",
+    1: "↓",
+    2: "←",
+    3: "→"
+}
+
+print("\nLearned Policy:\n")
+
+for r in range(rows):
+
+    for c in range(cols):
+
+        if grid[r, c] == -1:
+            print(" G ", end="")
+        elif grid[r, c] == 1:
+            print(" F ", end="")
+        else:
+            print(
+                f" {symbols[np.argmax(Q[r, c])]} ",
+                end=""
+            )
+
+    print()
