@@ -1,0 +1,99 @@
+#20) Implement an epsilon-greedy strategy to optimize content recommendations on an online
+#learning platform. Write a Python script to simulate and analyze its performance over
+#multiple runs.
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+
+# Content types
+contents = ["Python", "AI", "Data Science", "Cloud", "Web"]
+
+# True probability of user liking each content
+true_rates = [0.60, 0.75, 0.55, 0.45, 0.65]
+
+n_contents = len(contents)
+rounds = 1000
+runs = 10
+epsilon = 0.1
+
+
+# Simulate user response
+def get_reward(content):
+    return 1 if random.random() < true_rates[content] else 0
+
+
+# Epsilon-Greedy Algorithm
+def epsilon_greedy():
+
+    counts = np.zeros(n_contents)
+    rewards = np.zeros(n_contents)
+
+    cumulative_rewards = []
+
+    for t in range(rounds):
+
+        # Exploration vs exploitation
+        if random.random() < epsilon:
+            action = random.randint(0, n_contents - 1)
+        else:
+            averages = rewards / (counts + 1e-10)
+            action = np.argmax(averages)
+
+        # Get user feedback
+        reward = get_reward(action)
+
+        counts[action] += 1
+        rewards[action] += reward
+
+        cumulative_rewards.append(
+            sum(cumulative_rewards[-1:] or [0]) + reward
+        )
+
+    return cumulative_rewards, rewards, counts
+
+
+# Run simulation multiple times
+all_rewards = []
+
+for run in range(runs):
+
+    cumulative, rewards, counts = epsilon_greedy()
+
+    all_rewards.append(cumulative)
+
+# Average performance
+average_rewards = np.mean(all_rewards, axis=0)
+
+# --------------------------------
+# Display Results
+# --------------------------------
+print("Epsilon-Greedy Content Recommendation")
+print("--------------------------------------")
+
+print("Final Average Reward:",
+      round(average_rewards[-1], 2))
+
+print("Average Reward per Recommendation:",
+      round(average_rewards[-1] / rounds, 3))
+
+# Best content based on true preference
+best_content = contents[np.argmax(true_rates)]
+
+print("Most Preferred Content:",
+      best_content)
+
+
+# --------------------------------
+# Plot Performance
+# --------------------------------
+plt.plot(
+    average_rewards,
+    label="Epsilon-Greedy"
+)
+
+plt.xlabel("Recommendations")
+plt.ylabel("Cumulative User Reward")
+plt.title("Epsilon-Greedy Content Recommendation")
+plt.legend()
+plt.grid()
+plt.show()
