@@ -1,0 +1,117 @@
+#18) Simulate an RL framework to optimize a manufacturing process, where actions represent
+#different machine settings and rewards are based on product quality. Implement the
+#environment, policy, and value function in Python.
+import numpy as np
+import random
+
+# -----------------------------
+# Manufacturing Environment
+# -----------------------------
+
+# States = machine conditions
+states = 5
+
+# Actions = machine settings
+# 0 = Low, 1 = Medium, 2 = High
+actions = 3
+
+# Q-table
+Q = np.zeros((states, actions))
+
+# Parameters
+alpha = 0.1
+gamma = 0.9
+epsilon = 0.2
+episodes = 1000
+
+
+# Product quality for each
+# state and machine setting
+quality = np.array([
+    [60, 75, 65],
+    [55, 85, 70],
+    [65, 80, 90],
+    [50, 70, 85],
+    [60, 88, 75]
+])
+
+
+# -----------------------------
+# Environment
+# -----------------------------
+def environment(state, action):
+
+    # Quality with small randomness
+    reward = quality[state, action] + \
+             np.random.normal(0, 3)
+
+    # Next manufacturing condition
+    next_state = random.randint(0, states - 1)
+
+    return next_state, reward
+
+
+# -----------------------------
+# Training
+# -----------------------------
+for episode in range(episodes):
+
+    state = random.randint(0, states - 1)
+
+    for _ in range(20):
+
+        # Epsilon-greedy policy
+        if random.random() < epsilon:
+            action = random.randint(0, actions - 1)
+        else:
+            action = np.argmax(Q[state])
+
+        next_state, reward = environment(
+            state, action
+        )
+
+        # Q-learning update
+        Q[state, action] += alpha * (
+            reward
+            + gamma * np.max(Q[next_state])
+            - Q[state, action]
+        )
+
+        state = next_state
+
+
+# -----------------------------
+# Learned Policy
+# -----------------------------
+policy = np.argmax(Q, axis=1)
+
+settings = ["Low", "Medium", "High"]
+
+print("Optimal Manufacturing Policy")
+print("----------------------------")
+
+for state in range(states):
+    print(
+        "State", state,
+        "->", settings[policy[state]]
+    )
+
+
+# -----------------------------
+# Value Function
+# -----------------------------
+V = np.max(Q, axis=1)
+
+print("\nLearned Value Function:")
+for state in range(states):
+    print(
+        "State", state,
+        ":", round(V[state], 2)
+    )
+
+
+# -----------------------------
+# Display Q-table
+# -----------------------------
+print("\nQ-Table:")
+print(np.round(Q, 2))
