@@ -1,0 +1,140 @@
+# Install first:
+# pip install gymnasium tensorflow numpy
+
+import gymnasium as gym
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense
+
+# Create environment
+env = gym.make("MountainCar-v0")
+
+# Neural network policy
+model = Sequential([
+    Dense(32, activation="relu", input_shape=(2,)),
+    Dense(32, activation="relu"),
+    Dense(3, activation="softmax")
+])
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+# -----------------------------------
+# Choose action using policy
+# -----------------------------------
+def choose_action(state):
+    probabilities = model(
+        np.array([state], dtype=np.float32)
+    ).numpy()[0]
+
+    return np.random.choice(3, p=probabilities)
+
+
+# -----------------------------------
+# Train policy
+# -----------------------------------
+episodes = 500
+
+for episode in range(episodes):
+
+    state, _ = env.reset()
+
+    states = []
+    actions = []
+    rewards = []
+
+    done = False
+
+    while not done:
+
+        action = choose_action(state)
+
+        next_state, reward, terminated, truncated, _ = \
+            env.step(action)
+
+        states.append(state)
+        actions.append(action)
+        rewards.append(reward)
+
+        state = next_state
+        done = terminated or truncated
+
+    # Calculate discounted rewards
+    returns = []
+    G = 0
+
+    for reward in reversed(rewards):
+        G = reward + 0.99 * G
+        returns.insert(0, G)
+
+    returns = np.array(returns)
+
+    # Normalize rewards
+    returns = (
+        returns - returns.mean()
+    ) / (returns.std() + 1e-8)
+
+    # Policy gradient update
+    with tf.GradientTape() as tape:
+
+        states_tensor = tf.convert_to_tensor(
+            states, dtype=tf.float32
+        )
+
+        probs = model(states_tensor)
+
+        selected_probs = tf.gather(
+            probs,
+            actions,
+            axis=1,
+            batch_dims=1
+        )
+
+        loss = -tf.reduce_mean(
+            tf.math.log(selected_probs + 1e-8)
+            * returns
+        )
+
+    gradients = tape.gradient(
+        loss,
+        model.trainable_variables
+    )
+
+    optimizer.apply_gradients(
+        zip(gradients, model.trainable_variables)
+    )
+
+    if (episode + 1) % 50 == 0:
+        print(
+            f"Episode {episode + 1}, "
+            f"Reward = {sum(rewards)}"
+        )
+
+
+# -----------------------------------
+# Test trained policy
+# -----------------------------------
+state, _ = env.reset()
+
+total_reward = 0
+done = False
+
+while not done:
+
+    probabilities = model(
+        np.array([state], dtype=np.float32)
+    ).numpy()[0]
+
+    action = np.argmax(probabilities)
+
+    state, reward, terminated, truncated, _ = \
+        env.step(action)
+
+    total_reward += reward
+    done = terminated or truncated
+
+print("\nTest Result")
+print("-----------")
+print("Total Reward:", total_reward)
+
+env.close()
