@@ -1,0 +1,69 @@
+#10) A financial institution wants to optimize its investment strategy. Use a basic policy gradient
+#method to simulate and optimize the investment policy for maximum returns. Implement
+#this in Python.
+import numpy as np
+
+np.random.seed(42)
+
+# Actions: 0 = Low, 1 = Medium, 2 = High investment
+actions = [0, 1, 2]
+
+# Expected returns for each investment level
+returns = [0.02, 0.05, 0.08]
+
+# Policy parameters
+theta = np.zeros(3)
+
+learning_rate = 0.05
+episodes = 1000
+
+
+# Softmax policy
+def policy():
+    exp_theta = np.exp(theta - np.max(theta))
+    return exp_theta / np.sum(exp_theta)
+
+
+# Simulate investment return
+def environment(action):
+    # Random market variation
+    return np.random.normal(returns[action], 0.03)
+
+
+# Policy Gradient Training
+average_rewards = []
+
+for episode in range(episodes):
+
+    probs = policy()
+
+    # Select investment action
+    action = np.random.choice(actions, p=probs)
+
+    # Receive return
+    reward = environment(action)
+
+    # Policy gradient update
+    gradient = -probs
+    gradient[action] += 1
+
+    theta += learning_rate * reward * gradient
+
+    average_rewards.append(reward)
+
+
+# Final learned policy
+final_probs = policy()
+
+print("Learned Investment Policy")
+print("-------------------------")
+
+print("Low Investment   :", round(final_probs[0], 3))
+print("Medium Investment:", round(final_probs[1], 3))
+print("High Investment  :", round(final_probs[2], 3))
+
+print("\nEstimated Average Return:",
+      round(np.mean(average_rewards), 4))
+
+print("\nRecommended Strategy:",
+      ["Low", "Medium", "High"][np.argmax(final_probs)])
