@@ -1,0 +1,93 @@
+#8) Simulate an autonomous car navigating a simple road network with intersections. Design
+#policies for the car to follow traffic rules and reach the destination safely. Implement these
+#policies in Python and evaluate their effectiveness.
+import random
+
+# Road network
+roads = {
+    "A": ["B", "C"],
+    "B": ["A", "D"],
+    "C": ["A", "D"],
+    "D": ["B", "C", "E"],
+    "E": []
+}
+
+start = "A"
+destination = "E"
+
+
+# -----------------------------
+# Safe Policy
+# -----------------------------
+def safe_policy(state):
+    # Prefer routes that move closer to destination
+    if state == "A":
+        return "C"
+    elif state == "C":
+        return "D"
+    elif state == "D":
+        return "E"
+    return destination
+
+
+# -----------------------------
+# Random Policy
+# -----------------------------
+def random_policy(state):
+    return random.choice(roads[state])
+
+
+# -----------------------------
+# Simulation
+# -----------------------------
+def simulate(policy, max_steps=20):
+    state = start
+    path = [state]
+    violations = 0
+
+    for _ in range(max_steps):
+
+        if state == destination:
+            break
+
+        action = policy(state)
+
+        # Traffic-rule violation:
+        # action must be a valid road
+        if action not in roads[state]:
+            violations += 1
+            break
+
+        state = action
+        path.append(state)
+
+    return path, violations
+
+
+# Run safe policy
+safe_path, safe_violations = simulate(safe_policy)
+
+# Run random policy
+random_path, random_violations = simulate(random_policy)
+
+
+# -----------------------------
+# Results
+# -----------------------------
+print("Autonomous Car Simulation")
+print("--------------------------")
+
+print("\nSafe Policy:")
+print("Path:", " -> ".join(safe_path))
+print("Steps:", len(safe_path) - 1)
+print("Traffic Violations:", safe_violations)
+
+print("\nRandom Policy:")
+print("Path:", " -> ".join(random_path))
+print("Steps:", len(random_path) - 1)
+print("Traffic Violations:", random_violations)
+
+if safe_path[-1] == destination:
+    print("\nSafe Policy: Destination reached safely.")
+else:
+    print("\nSafe Policy: Destination not reached.")
