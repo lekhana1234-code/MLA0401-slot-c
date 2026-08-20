@@ -1,0 +1,115 @@
+import numpy as np
+import random
+
+# Representatives
+representatives = ["Rep_1", "Rep_2", "Rep_3"]
+
+# Call types
+call_types = ["Technical", "Billing", "General"]
+
+# Average handling time (minutes)
+handling_time = {
+    "Technical": [8, 6, 10],
+    "Billing":   [5, 7, 6],
+    "General":   [6, 8, 5]
+}
+
+# Q-values: estimated negative handling time
+Q = np.zeros((len(call_types), len(representatives)))
+
+# Number of observations
+N = np.zeros_like(Q)
+
+epsilon = 0.1
+episodes = 5000
+
+
+# --------------------------------
+# Choose representative
+# --------------------------------
+def choose_action(state):
+
+    if random.random() < epsilon:
+        return random.randint(0, 2)
+
+    return np.argmax(Q[state])
+
+
+# --------------------------------
+# Monte Carlo Policy Control
+# --------------------------------
+for episode in range(episodes):
+
+    # Generate a random call
+    state = random.randint(0, len(call_types) - 1)
+
+    action = choose_action(state)
+
+    call_type = call_types[state]
+
+    # Simulate actual handling time
+    mean_time = handling_time[call_type][action]
+    actual_time = max(
+        1,
+        np.random.normal(mean_time, 1.5)
+    )
+
+    # Negative reward because we want
+    # to minimize handling time
+    reward = -actual_time
+
+    # Update average value
+    N[state, action] += 1
+
+    Q[state, action] += (
+        reward - Q[state, action]
+    ) / N[state, action]
+
+
+# --------------------------------
+# Extract Optimal Policy
+# --------------------------------
+policy = np.argmax(Q, axis=1)
+
+print("Optimal Call Assignment Policy")
+print("--------------------------------")
+
+for i, call in enumerate(call_types):
+
+    rep = representatives[policy[i]]
+
+    print(
+        call, "->", rep,
+        "| Estimated Handling Time:",
+        round(-Q[i, policy[i]], 2),
+        "minutes"
+    )
+
+
+# --------------------------------
+# Evaluate Learned Policy
+# --------------------------------
+total_time = 0
+test_calls = 1000
+
+for _ in range(test_calls):
+
+    state = random.randint(0, 2)
+    action = policy[state]
+
+    call_type = call_types[state]
+
+    mean_time = handling_time[call_type][action]
+
+    time = max(
+        1,
+        np.random.normal(mean_time, 1.5)
+    )
+
+    total_time += time
+
+print("\nPerformance")
+print("-----------")
+print("Average Call Handling Time:",
+      round(total_time / test_calls, 2),
+      "minutes")
