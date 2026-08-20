@@ -1,0 +1,172 @@
+import numpy as np
+
+# GridWorld
+# 0 = Free cell
+# 1 = Obstacle
+# 2 = Goal
+grid = np.array([
+    [0, 0, 0, 1, 0],
+    [0, 1, 0, 1, 0],
+    [0, 0, 0, 0, 0],
+    [1, 0, 1, 1, 0],
+    [0, 0, 0, 0, 2]
+])
+
+rows, cols = grid.shape
+
+# Actions: Up, Down, Left, Right
+actions = {
+    "U": (-1, 0),
+    "D": (1, 0),
+    "L": (0, -1),
+    "R": (0, 1)
+}
+
+gamma = 0.9
+
+# Initial policy
+policy = np.full((rows, cols), "R", dtype="<U1")
+
+# Value function
+V = np.zeros((rows, cols))
+
+
+# --------------------------------
+# Environment step
+# --------------------------------
+def step(state, action):
+    r, c = state
+    dr, dc = actions[action]
+
+    nr, nc = r + dr, c + dc
+
+    # Boundary or obstacle
+    if (nr < 0 or nr >= rows or
+        nc < 0 or nc >= cols or
+        grid[nr, nc] == 1):
+        return state, -5
+
+    # Goal
+    if grid[nr, nc] == 2:
+        return (nr, nc), 100
+
+    # Each step has a cost
+    return (nr, nc), -1
+
+
+# --------------------------------
+# Policy Iteration
+# --------------------------------
+while True:
+
+    # -------- Policy Evaluation --------
+    for _ in range(100):
+
+        new_V = V.copy()
+
+        for r in range(rows):
+            for c in range(cols):
+
+                if grid[r, c] == 1 or grid[r, c] == 2:
+                    continue
+
+                action = policy[r, c]
+
+                next_state, reward = step(
+                    (r, c), action
+                )
+
+                nr, nc = next_state
+
+                new_V[r, c] = (
+                    reward + gamma * V[nr, nc]
+                )
+
+        V = new_V
+
+    # -------- Policy Improvement --------
+    policy_stable = True
+
+    for r in range(rows):
+        for c in range(cols):
+
+            if grid[r, c] == 1 or grid[r, c] == 2:
+                continue
+
+            old_action = policy[r, c]
+
+            best_action = None
+            best_value = -float("inf")
+
+            for action in actions:
+
+                next_state, reward = step(
+                    (r, c), action
+                )
+
+                nr, nc = next_state
+
+                value = (
+                    reward + gamma * V[nr, nc]
+                )
+
+                if value > best_value:
+                    best_value = value
+                    best_action = action
+
+            policy[r, c] = best_action
+
+            if old_action != best_action:
+                policy_stable = False
+
+    if policy_stable:
+        break
+
+
+# --------------------------------
+# Display Optimal Policy
+# --------------------------------
+print("Optimal GridWorld Policy:\n")
+
+for r in range(rows):
+    for c in range(cols):
+
+        if grid[r, c] == 1:
+            print(" X ", end="")
+        elif grid[r, c] == 2:
+            print(" G ", end="")
+        else:
+            print(
+                f" {policy[r,c]} ",
+                end=""
+            )
+
+    print()
+
+
+# --------------------------------
+# Display Value Function
+# --------------------------------
+print("\nValue Function:")
+print(np.round(V, 2))
+
+
+# --------------------------------
+# Simulate Agent
+# --------------------------------
+state = (0, 0)
+path = [state]
+
+for _ in range(30):
+
+    if grid[state] == 2:
+        break
+
+    r, c = state
+    action = policy[r, c]
+
+    state, reward = step(state, action)
+    path.append(state)
+
+print("\nAgent Path:")
+print(" -> ".join(map(str, path)))
