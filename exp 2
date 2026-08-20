@@ -1,0 +1,160 @@
+import numpy as np
+import random
+
+# -----------------------------
+# 5x5 Cleaning Robot Environment
+# -----------------------------
+grid = np.array([
+    [0,  1,  0, -1,  1],
+    [0, -1,  1,  0,  0],
+    [1,  0,  0, -1,  1],
+    [0,  1, -1,  0,  0],
+    [1,  0,  1,  0,  1]
+])
+
+# 0 = Empty cell
+# 1 = Dirt
+# -1 = Obstacle
+
+actions = {
+    0: (-1, 0),   # Up
+    1: (1, 0),    # Down
+    2: (0, -1),   # Left
+    3: (0, 1)     # Right
+}
+
+ROWS, COLS = 5, 5
+
+
+# -----------------------------
+# MDP Environment
+# -----------------------------
+def step(state, action):
+    r, c = state
+    dr, dc = actions[action]
+
+    nr = r + dr
+    nc = c + dc
+
+    # Boundary or obstacle
+    if nr < 0 or nr >= ROWS or nc < 0 or nc >= COLS:
+        return state, -1
+
+    if grid[nr, nc] == -1:
+        return state, -1
+
+    # Dirt gives +1 reward
+    reward = 1 if grid[nr, nc] == 1 else 0
+
+    return (nr, nc), reward
+
+
+# -----------------------------
+# Random Policy
+# -----------------------------
+def random_policy(steps=30):
+    state = (0, 0)
+    total_reward = 0
+
+    for _ in range(steps):
+        action = random.randint(0, 3)
+        state, reward = step(state, action)
+        total_reward += reward
+
+    return total_reward
+
+
+# -----------------------------
+# Greedy Policy
+# -----------------------------
+def greedy_policy(steps=30):
+    state = (0, 0)
+    total_reward = 0
+
+    for _ in range(steps):
+
+        best_action = None
+        best_reward = -999
+
+        for action in range(4):
+            next_state, reward = step(state, action)
+
+            if reward > best_reward:
+                best_reward = reward
+                best_action = action
+
+        state, reward = step(state, best_action)
+        total_reward += reward
+
+    return total_reward
+
+
+# -----------------------------
+# Q-Learning
+# -----------------------------
+Q = np.zeros((ROWS, COLS, 4))
+
+alpha = 0.1       # Learning rate
+gamma = 0.9       # Discount factor
+epsilon = 0.2     # Exploration probability
+
+episodes = 2000
+
+for episode in range(episodes):
+
+    state = (0, 0)
+
+    for _ in range(50):
+
+        r, c = state
+
+        # Epsilon-greedy action selection
+        if random.random() < epsilon:
+            action = random.randint(0, 3)
+        else:
+            action = np.argmax(Q[r, c])
+
+        next_state, reward = step(state, action)
+
+        nr, nc = next_state
+
+        # Q-learning update
+        Q[r, c, action] = Q[r, c, action] + alpha * (
+            reward +
+            gamma * np.max(Q[nr, nc]) -
+            Q[r, c, action]
+        )
+
+        state = next_state
+
+
+# -----------------------------
+# Learned Q-Learning Policy
+# -----------------------------
+def q_learning_policy(steps=30):
+    state = (0, 0)
+    total_reward = 0
+
+    for _ in range(steps):
+
+        r, c = state
+        action = np.argmax(Q[r, c])
+
+        state, reward = step(state, action)
+        total_reward += reward
+
+    return total_reward
+
+
+# -----------------------------
+# Compare Policies
+# -----------------------------
+print("Cleaning Robot - Policy Comparison")
+print("-----------------------------------")
+
+print("Random Policy Reward :", random_policy())
+print("Greedy Policy Reward :", greedy_policy())
+print("Q-Learning Reward    :", q_learning_policy())
+
+print("\nLearned Q-Table:")
+print(Q)
