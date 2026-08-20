@@ -1,0 +1,160 @@
+#12) A robot vacuum cleaner navigates a house with various rooms and obstacles. Use the SARSA
+#algorithm to learn the optimal cleaning policy that maximizes the cleaned area while
+#minimizing energy usage. Implement this in Python.
+import numpy as np
+import random
+
+# 5x5 House
+# 0 = Empty, 1 = Dirt, -1 = Obstacle
+grid = np.array([
+    [0, 1, 0, 0, 1],
+    [0, -1, 0, -1, 0],
+    [1, 0, 0, 0, 1],
+    [0, -1, 1, -1, 0],
+    [1, 0, 0, 0, 1]
+])
+
+rows, cols = grid.shape
+
+# Actions: Up, Down, Left, Right
+actions = {
+    0: (-1, 0),
+    1: (1, 0),
+    2: (0, -1),
+    3: (0, 1)
+}
+
+alpha = 0.1       # Learning rate
+gamma = 0.9       # Discount factor
+epsilon = 0.2     # Exploration rate
+
+# Q-table
+Q = np.zeros((rows, cols, 4))
+
+
+# --------------------------------
+# Environment step
+# --------------------------------
+def step(state, action):
+
+    r, c = state
+    dr, dc = actions[action]
+
+    nr = r + dr
+    nc = c + dc
+
+    # Obstacle or boundary
+    if (nr < 0 or nr >= rows or
+        nc < 0 or nc >= cols or
+        grid[nr, nc] == -1):
+
+        return state, -5
+
+    # Cleaning dirt
+    if grid[nr, nc] == 1:
+        reward = 10
+    else:
+        reward = -1       # Energy cost
+
+    return (nr, nc), reward
+
+
+# --------------------------------
+# SARSA action selection
+# --------------------------------
+def choose_action(state):
+
+    r, c = state
+
+    if random.random() < epsilon:
+        return random.randint(0, 3)
+
+    return np.argmax(Q[r, c])
+
+
+# --------------------------------
+# SARSA Training
+# --------------------------------
+episodes = 1000
+
+for episode in range(episodes):
+
+    state = (0, 0)
+    action = choose_action(state)
+
+    for step_count in range(100):
+
+        next_state, reward = step(state, action)
+
+        next_action = choose_action(next_state)
+
+        r, c = state
+        nr, nc = next_state
+
+        # SARSA update
+        Q[r, c, action] += alpha * (
+            reward +
+            gamma * Q[nr, nc, next_action] -
+            Q[r, c, action]
+        )
+
+        state = next_state
+        action = next_action
+
+
+# --------------------------------
+# Display learned policy
+# --------------------------------
+symbols = {
+    0: "↑",
+    1: "↓",
+    2: "←",
+    3: "→"
+}
+
+print("Optimal Cleaning Policy:\n")
+
+for r in range(rows):
+    for c in range(cols):
+
+        if grid[r, c] == -1:
+            print(" X ", end="")
+        elif grid[r, c] == 1:
+            print(" D ", end="")
+        else:
+            print(
+                f" {symbols[np.argmax(Q[r, c])]} ",
+                end=""
+            )
+
+    print()
+
+
+# --------------------------------
+# Test the learned policy
+# --------------------------------
+state = (0, 0)
+total_reward = 0
+cleaned = 0
+
+for _ in range(50):
+
+    r, c = state
+    action = np.argmax(Q[r, c])
+
+    next_state, reward = step(state, action)
+
+    # Count cleaned cells
+    nr, nc = next_state
+
+    if grid[nr, nc] == 1:
+        cleaned += 1
+        grid[nr, nc] = 0
+
+    total_reward += reward
+    state = next_state
+
+print("\nPerformance")
+print("-----------")
+print("Cleaned Cells :", cleaned)
+print("Total Reward  :", total_reward)
