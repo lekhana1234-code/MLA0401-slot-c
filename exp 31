@@ -1,0 +1,75 @@
+#31) An autonomous exploration robot needs to navigate and map an unknown environment.
+#Implement a sampling-based planning algorithm (e.g., RRT, RRT*, or PRM) to plan collision-
+#free paths for the robot to explore efficiently. Write a Python program to simulate the
+#robot&#39;s exploration process and visualize the generated paths.
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(1)
+
+start = np.array([5, 5])
+goal = np.array([95, 95])
+
+obstacles = [(25,20,20,40), (60,50,25,20), (20,75,30,10)]
+
+def collision(p):
+    return any(x <= p[0] <= x+w and y <= p[1] <= y+h
+               for x,y,w,h in obstacles)
+
+nodes = [start]
+parents = [-1]
+
+for _ in range(3000):
+
+    r = np.random.rand(2) * 100
+    i = np.argmin([np.linalg.norm(n-r) for n in nodes])
+
+    d = r - nodes[i]
+    d = d / (np.linalg.norm(d) + 1e-6)
+    new = nodes[i] + 2*d
+
+    if 0 <= new[0] <= 100 and 0 <= new[1] <= 100:
+        if not collision(new):
+            nodes.append(new)
+            parents.append(i)
+
+            if np.linalg.norm(new-goal) < 3:
+                nodes.append(goal)
+                parents.append(len(nodes)-2)
+                break
+
+# Build path
+path = []
+i = len(nodes)-1
+
+while i != -1:
+    path.append(nodes[i])
+    i = parents[i]
+
+path = np.array(path[::-1])
+
+# Visualization
+plt.figure(figsize=(7,7))
+
+for x,y,w,h in obstacles:
+    plt.gca().add_patch(plt.Rectangle((x,y),w,h))
+
+for i in range(1,len(nodes)):
+    plt.plot([nodes[i][0],nodes[parents[i]][0]],
+             [nodes[i][1],nodes[parents[i]][1]],
+             linewidth=0.5)
+
+plt.plot(path[:,0], path[:,1], linewidth=3, label="RRT Path")
+plt.scatter(*start, s=80, label="Start")
+plt.scatter(*goal, s=80, label="Goal")
+
+plt.xlim(0,100)
+plt.ylim(0,100)
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.title("Autonomous Robot - RRT Path Planning")
+plt.legend()
+plt.grid()
+plt.show()
+
+print("Path Found!")
