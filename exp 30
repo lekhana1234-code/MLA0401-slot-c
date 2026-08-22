@@ -1,0 +1,49 @@
+#30) Train a virtual character to create engaging content (e.g., storytelling, interactive
+#experiences) within a simulated virtual world using policy gradient methods. Implement the
+#policy gradient algorithm in Python to optimize the character&#39;s behavior for maximum audience engagement.
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Actions: Story, Joke, Question, Adventure
+actions = ["Story", "Joke", "Question", "Adventure"]
+
+# Audience engagement probability
+reward_prob = [0.6, 0.8, 0.5, 0.7]
+
+# Policy probabilities
+policy = np.ones(4) / 4
+learning_rate = 0.1
+rewards = []
+
+for episode in range(500):
+
+    # Select action according to policy
+    action = np.random.choice(4, p=policy)
+
+    # Audience engagement
+    reward = int(np.random.rand() < reward_prob[action])
+    rewards.append(reward)
+
+    # Policy Gradient update
+    advantage = reward - np.mean(reward_prob)
+
+    policy[action] += learning_rate * advantage
+
+    # Keep probabilities valid
+    policy = np.maximum(policy, 0.01)
+    policy /= policy.sum()
+
+print("Final Policy:")
+for i in range(4):
+    print(actions[i], ":", round(policy[i], 3))
+
+print("Average Engagement:",
+      round(np.mean(rewards), 3))
+
+# Plot engagement
+plt.plot(np.cumsum(rewards) / np.arange(1, 501))
+plt.xlabel("Episodes")
+plt.ylabel("Average Engagement")
+plt.title("Policy Gradient - Virtual Character")
+plt.grid()
+plt.show()
