@@ -1,0 +1,35 @@
+#27) Implement an agent that manages a financial portfolio, choosing stocks to maximize returns and minimize risk using an Actor-Critic (A3C) method to optimize investment. Implement a
+#robot that navigates a maze to reach the exit, with rewards for reaching the exit and penalties for hitting walls, and use REINFORCE to find the optimal navigation policy.
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers
+
+# 3 stocks
+returns = np.array([0.08, 0.05, 0.02])
+
+actor = tf.keras.Sequential([
+    layers.Dense(16, activation="relu", input_shape=(3,)),
+    layers.Dense(3, activation="softmax")
+])
+
+critic = tf.keras.Sequential([
+    layers.Dense(16, activation="relu", input_shape=(3,)),
+    layers.Dense(1)
+])
+
+for episode in range(100):
+    with tf.GradientTape() as tape:
+        action = actor(returns.reshape(1, -1))
+        reward = tf.reduce_sum(action * returns)
+        value = critic(returns.reshape(1, -1))
+        advantage = reward - value
+        loss = -tf.reduce_sum(tf.math.log(action) * advantage)
+
+    grads = tape.gradient(loss, actor.trainable_variables)
+    tf.keras.optimizers.Adam(0.01).apply_gradients(
+        zip(grads, actor.trainable_variables))
+
+weights = actor(returns.reshape(1, -1)).numpy()[0]
+
+print("Stock Allocation:", np.round(weights, 3))
+print("Expected Return:", round(np.sum(weights * returns), 3))
