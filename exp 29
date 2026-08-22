@@ -1,0 +1,66 @@
+#29) Train an AI agent to compete in autonomous vehicle racing competitions using Advantage
+#Actor-Critic (A2C) methods. Implement A2C in Python to learn aggressive driving policies that optimize lap times and race performance
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers
+
+# State = [speed, distance, track_position]
+# Actions = 0: Brake, 1: Maintain, 2: Accelerate
+
+actor = tf.keras.Sequential([
+    layers.Dense(32, activation="relu", input_shape=(3,)),
+    layers.Dense(3, activation="softmax")
+])
+
+critic = tf.keras.Sequential([
+    layers.Dense(32, activation="relu", input_shape=(3,)),
+    layers.Dense(1)
+])
+
+optimizer = tf.keras.optimizers.Adam(0.001)
+
+for episode in range(200):
+
+    state = np.random.rand(3)
+    
+    with tf.GradientTape() as tape:
+        action_prob = actor(state.reshape(1, -1))
+        value = critic(state.reshape(1, -1))
+
+        action = tf.random.categorical(
+            tf.math.log(action_prob), 1
+        )[0, 0]
+
+        reward = 1.0 if action == 2 else 0.2
+
+        advantage = reward - value[0, 0]
+
+        actor_loss = -tf.math.log(
+            action_prob[0, action]
+        ) * advantage
+
+        critic_loss = advantage ** 2
+
+        loss = actor_loss + critic_loss
+
+    gradients = tape.gradient(
+        loss,
+        actor.trainable_variables + critic.trainable_variables
+    )
+
+    optimizer.apply_gradients(
+        zip(
+            gradients,
+            actor.trainable_variables + critic.trainable_variables
+        )
+    )
+
+print("A2C Training Completed")
+
+state = np.array([[0.8, 0.7, 0.5]])
+prob = actor(state).numpy()[0]
+
+actions = ["Brake", "Maintain", "Accelerate"]
+
+print("Action Probabilities:", np.round(prob, 3))
+print("Recommended Action:", actions[np.argmax(prob)])
