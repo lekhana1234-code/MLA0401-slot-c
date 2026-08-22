@@ -1,0 +1,73 @@
+#23) Explain the relationship between policy and value functions using a practical gridworld
+#example. Implement this relationship in Python and visualize how different policies affect the value function.
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 4x4 GridWorld
+grid = np.zeros((4, 4))
+
+# Goal and bad state
+grid[0, 3] = 10
+grid[3, 3] = -10
+
+# Two different policies
+policy1 = np.array([
+    ['R','R','R','G'],
+    ['R','R','R','U'],
+    ['R','R','R','U'],
+    ['U','U','U','U']
+])
+
+policy2 = np.array([
+    ['D','D','R','G'],
+    ['R','D','R','U'],
+    ['R','R','R','U'],
+    ['R','R','R','U']
+])
+
+def value_function(policy):
+    V = np.zeros((4,4))
+
+    for _ in range(100):
+        new_V = V.copy()
+
+        for i in range(4):
+            for j in range(4):
+                if (i,j) == (0,3) or (i,j) == (3,3):
+                    continue
+
+                ni, nj = i, j
+                a = policy[i,j]
+
+                if a == 'U': ni -= 1
+                if a == 'D': ni += 1
+                if a == 'L': nj -= 1
+                if a == 'R': nj += 1
+
+                if 0 <= ni < 4 and 0 <= nj < 4:
+                    reward = grid[ni,nj]
+                    new_V[i,j] = reward + 0.9 * V[ni,nj]
+
+        V = new_V
+
+    return V
+
+V1 = value_function(policy1)
+V2 = value_function(policy2)
+
+print("Policy 1 Values:\n", np.round(V1,2))
+print("\nPolicy 2 Values:\n", np.round(V2,2))
+
+plt.figure(figsize=(10,4))
+
+plt.subplot(1,2,1)
+plt.imshow(V1)
+plt.title("Policy 1 Value Function")
+plt.colorbar()
+
+plt.subplot(1,2,2)
+plt.imshow(V2)
+plt.title("Policy 2 Value Function")
+plt.colorbar()
+
+plt.show()
