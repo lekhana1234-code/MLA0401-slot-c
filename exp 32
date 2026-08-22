@@ -1,0 +1,58 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(1)
+
+days = 100
+initial_stock = 50
+
+# Generate synthetic customer demand
+demand = np.random.poisson(8, days)
+
+# Inventory policies
+policies = {
+    "Fixed Order": 10,
+    "High Order": 15,
+    "Low Order": 5
+}
+
+results = {}
+
+for name, order in policies.items():
+
+    stock = initial_stock
+    total_cost = 0
+    inventory = []
+
+    for d in demand:
+
+        # Add new stock
+        stock += order
+
+        # Sell according to demand
+        sold = min(stock, d)
+        stock -= sold
+
+        # Holding + shortage cost
+        holding_cost = 0.5 * stock
+        shortage_cost = 5 * max(0, d - sold)
+
+        total_cost += holding_cost + shortage_cost
+        inventory.append(stock)
+
+    results[name] = (total_cost, inventory)
+
+# Display results
+for name, (cost, _) in results.items():
+    print(name, "Cost:", round(cost, 2))
+
+# Plot inventory levels
+for name, (_, inventory) in results.items():
+    plt.plot(inventory, label=name)
+
+plt.xlabel("Days")
+plt.ylabel("Inventory")
+plt.title("Inventory Management Policies")
+plt.legend()
+plt.grid()
+plt.show()
