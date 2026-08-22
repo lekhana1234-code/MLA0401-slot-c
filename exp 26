@@ -1,0 +1,50 @@
+#26) Develop a recommendation system for a streaming service to suggest movies based on user
+#feedback, implemented as an MDP and trained using a Deep Deterministic Policy Gradient (DDPG) algorithm.
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers
+
+# Movies and user preferences
+movies = ["Action", "Comedy", "Drama", "Sci-Fi", "Horror"]
+preference = np.array([0.8, 0.5, 0.7, 0.9, 0.3])
+
+# Actor network
+actor = tf.keras.Sequential([
+    layers.Dense(16, activation="relu", input_shape=(5,)),
+    layers.Dense(8, activation="relu"),
+    layers.Dense(5, activation="softmax")
+])
+
+# Critic network
+critic = tf.keras.Sequential([
+    layers.Dense(16, activation="relu", input_shape=(10,)),
+    layers.Dense(8, activation="relu"),
+    layers.Dense(1)
+])
+
+actor_optimizer = tf.keras.optimizers.Adam(0.001)
+critic_optimizer = tf.keras.optimizers.Adam(0.001)
+
+# Training
+for episode in range(100):
+
+    state = preference.copy()
+
+    with tf.GradientTape() as tape:
+        action = actor(state.reshape(1, -1))
+        reward = tf.reduce_sum(action * preference)
+        loss = -reward
+
+    grads = tape.gradient(loss, actor.trainable_variables)
+    actor_optimizer.apply_gradients(
+        zip(grads, actor.trainable_variables)
+    )
+
+# Recommendation
+probabilities = actor(preference.reshape(1, -1)).numpy()[0]
+best = np.argmax(probabilities)
+
+print("Movie Categories:", movies)
+print("Recommendation Probabilities:",
+      np.round(probabilities, 3))
+print("Recommended Movie Category:", movies[best])
