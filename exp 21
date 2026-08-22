@@ -1,0 +1,86 @@
+#20) Implement an epsilon-greedy strategy to optimize content recommendations on an online
+#learning platform. Write a Python script to simulate and analyze its performance over
+#multiple runs.
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Content recommendation options
+contents = ["Python", "AI", "Web Development", "Data Science", "Cyber Security"]
+
+# True average rewards (user preference)
+true_rewards = [0.7, 0.9, 0.5, 0.8, 0.6]
+
+# Parameters
+epsilon = 0.1          # 10% exploration
+steps = 1000            # recommendations per run
+runs = 20               # number of simulations
+
+# Store rewards from all runs
+all_rewards = np.zeros((runs, steps))
+
+for run in range(runs):
+
+    # Estimated reward for each content
+    estimated_rewards = np.zeros(len(contents))
+
+    # Number of times each content was selected
+    counts = np.zeros(len(contents))
+
+    for step in range(steps):
+
+        # Epsilon-greedy selection
+        if np.random.random() < epsilon:
+            # Exploration: choose a random content
+            action = np.random.randint(len(contents))
+        else:
+            # Exploitation: choose content with highest estimated reward
+            action = np.argmax(estimated_rewards)
+
+        # Simulate user response
+        # Probability of positive response = true reward
+        reward = np.random.random() < true_rewards[action]
+
+        # Update selection count
+        counts[action] += 1
+
+        # Update estimated reward
+        estimated_rewards[action] += (
+            reward - estimated_rewards[action]
+        ) / counts[action]
+
+        # Store reward
+        all_rewards[run, step] = reward
+
+# Calculate average reward over all runs
+average_rewards = np.mean(all_rewards, axis=0)
+
+# Calculate cumulative average reward
+cumulative_average = np.cumsum(average_rewards) / np.arange(1, steps + 1)
+
+# Display final estimated rewards
+print("Content Recommendation Results")
+print("--------------------------------")
+
+for i in range(len(contents)):
+    print(f"{contents[i]:20s} True Reward: {true_rewards[i]}")
+
+print("\nAverage reward after", steps, "recommendations:",
+      round(np.mean(all_rewards[:, -100:]), 3))
+
+# Plot average reward
+plt.figure(figsize=(10, 5))
+plt.plot(average_rewards)
+plt.xlabel("Recommendation Step")
+plt.ylabel("Average Reward")
+plt.title("Epsilon-Greedy Content Recommendation")
+plt.grid(True)
+plt.show()
+
+# Plot cumulative average reward
+plt.figure(figsize=(10, 5))
+plt.plot(cumulative_average)
+plt.xlabel("Recommendation Step")
+plt.ylabel("Cumulative Average Reward")
+plt.title("Performance of Epsilon-Greedy Strategy")
+plt.grid(True)
+plt.show()
