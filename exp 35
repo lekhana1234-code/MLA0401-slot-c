@@ -1,0 +1,91 @@
+#35) urban environment. Implement a sampling-based planning algorithm (e.g., RRT, RRT*,
+#or PRM) to plan collision-free flight paths for the UAV while maximizing coverage and
+#minimizing detection latency. Write a Python program to simulate the UAV&#39;s surveillance mission and visualize the planned paths.
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(1)
+
+start = np.array([5, 5])
+goal = np.array([95, 95])
+
+# Urban obstacles
+obstacles = [
+    (20, 20, 20, 30),
+    (55, 15, 25, 20),
+    (60, 60, 25, 25)
+]
+
+def collision(p):
+    for x, y, w, h in obstacles:
+        if x <= p[0] <= x+w and y <= p[1] <= y+h:
+            return True
+    return False
+
+nodes = [start]
+parents = [-1]
+
+# RRT planning
+for _ in range(3000):
+
+    r = np.random.rand(2) * 100
+    i = np.argmin([np.linalg.norm(n-r) for n in nodes])
+
+    direction = r - nodes[i]
+    direction /= np.linalg.norm(direction) + 1e-6
+
+    new = nodes[i] + 2 * direction
+
+    if 0 <= new[0] <= 100 and 0 <= new[1] <= 100:
+        if not collision(new):
+            nodes.append(new)
+            parents.append(i)
+
+            if np.linalg.norm(new-goal) < 3:
+                nodes.append(goal)
+                parents.append(len(nodes)-2)
+                break
+
+# Create final path
+path = []
+i = len(nodes) - 1
+
+while i != -1:
+    path.append(nodes[i])
+    i = parents[i]
+
+path = np.array(path[::-1])
+
+# Visualize UAV path
+plt.figure(figsize=(7,7))
+
+for x, y, w, h in obstacles:
+    plt.gca().add_patch(
+        plt.Rectangle((x, y), w, h)
+    )
+
+# RRT tree
+for i in range(1, len(nodes)):
+    plt.plot(
+        [nodes[i][0], nodes[parents[i]][0]],
+        [nodes[i][1], nodes[parents[i]][1]],
+        linewidth=0.4
+    )
+
+# UAV path
+plt.plot(path[:,0], path[:,1],
+         linewidth=3, label="UAV Path")
+
+plt.scatter(*start, s=80, label="Start")
+plt.scatter(*goal, s=80, label="Target")
+
+plt.xlim(0,100)
+plt.ylim(0,100)
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.title("UAV Urban Surveillance using RRT")
+plt.legend()
+plt.grid()
+plt.show()
+
+print("Collision-free path generated!")
