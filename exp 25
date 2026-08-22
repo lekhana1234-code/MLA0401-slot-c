@@ -1,0 +1,51 @@
+#25) Model a smart grid that manages energy consumption and production to minimize costs and
+#balance supply and demand using Trust Region Policy Optimization (TRPO) to optimize energy management.
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Smart grid environment
+np.random.seed(1)
+steps = 500
+
+demand = np.random.uniform(50, 100, steps)
+production = np.random.uniform(40, 90, steps)
+
+# Policy parameter
+theta = 0.5
+lr = 0.01
+
+costs = []
+
+for t in range(steps):
+
+    # Energy supplied using policy
+    supply = production[t] + theta * (demand[t] - production[t])
+
+    # Balance supply and demand
+    shortage = max(0, demand[t] - supply)
+    excess = max(0, supply - demand[t])
+
+    # Cost function
+    cost = 2 * shortage + 0.5 * excess + 0.1 * supply
+
+    # Policy update (simplified TRPO)
+    gradient = shortage - excess
+    theta += lr * gradient
+
+    # Trust-region constraint
+    theta = np.clip(theta, 0, 1)
+
+    costs.append(cost)
+
+print("Average Energy Cost:",
+      round(np.mean(costs), 2))
+
+print("Final Policy Parameter:",
+      round(theta, 3))
+
+plt.plot(costs)
+plt.xlabel("Time Step")
+plt.ylabel("Energy Cost")
+plt.title("TRPO Smart Grid Energy Management")
+plt.grid()
+plt.show()
