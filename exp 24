@@ -1,0 +1,47 @@
+#24) In an inventory management system, use Bellman’s equation to find the optimal policy for
+#ordering stock. Implement this in Python and demonstrate how the optimal policy minimizes costs
+import numpy as np
+
+# Inventory states: 0 to 5
+states = range(6)
+actions = range(6)
+
+holding = 2      # cost for storing one item
+ordering = 5     # cost per item ordered
+shortage = 10    # shortage cost
+discount = 0.9
+
+V = np.zeros(6)
+policy = np.zeros(6, dtype=int)
+
+# Bellman equation
+for _ in range(100):
+    new_V = np.zeros(6)
+
+    for s in states:
+        costs = []
+
+        for a in actions:
+            if s + a > 5:
+                costs.append(999)
+                continue
+
+            # Assume demand = 2
+            inventory = s + a
+            remaining = max(0, inventory - 2)
+
+            cost = ordering * a + holding * remaining
+            costs.append(cost + discount * V[remaining])
+
+        policy[s] = np.argmin(costs)
+        new_V[s] = min(costs)
+
+    V = new_V
+
+print("Inventory | Order | Minimum Cost")
+print("--------------------------------")
+
+for s in states:
+    print(f"    {s}     |   {policy[s]}   |   {V[s]:.2f}")
+
+print("\nOptimal Policy:", policy)
