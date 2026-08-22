@@ -1,0 +1,44 @@
+#22) Simulate a k-armed bandit problem to optimize marketing campaign choices. Implement
+#epsilon-greedy, UCB, and Thompson Sampling algorithms in Python and evaluate their performance.
+import numpy as np
+import matplotlib.pyplot as plt
+
+p = [0.2, 0.5, 0.3, 0.7, 0.4]
+k, n = 5, 500
+
+# Epsilon-Greedy
+Q = np.zeros(k); N = np.zeros(k); eg = []
+for t in range(n):
+    a = np.random.randint(k) if np.random.rand() < 0.1 else np.argmax(Q)
+    r = int(np.random.rand() < p[a])
+    N[a] += 1
+    Q[a] += (r - Q[a]) / N[a]
+    eg.append(r)
+
+# UCB
+Q = np.zeros(k); N = np.zeros(k); ucb = []
+for t in range(n):
+    a = t if t < k else np.argmax(Q + np.sqrt(2*np.log(t+1)/N))
+    r = int(np.random.rand() < p[a])
+    N[a] += 1
+    Q[a] += (r-Q[a])/N[a]
+    ucb.append(r)
+
+# Thompson Sampling
+A = np.ones(k); B = np.ones(k); ts = []
+for t in range(n):
+    a = np.argmax(np.random.beta(A, B))
+    r = int(np.random.rand() < p[a])
+    A[a] += r; B[a] += 1-r
+    ts.append(r)
+
+print("Epsilon-Greedy:", round(np.mean(eg),3))
+print("UCB:", round(np.mean(ucb),3))
+print("Thompson Sampling:", round(np.mean(ts),3))
+
+plt.plot(np.cumsum(eg)/np.arange(1,n+1), label="Epsilon")
+plt.plot(np.cumsum(ucb)/np.arange(1,n+1), label="UCB")
+plt.plot(np.cumsum(ts)/np.arange(1,n+1), label="Thompson")
+plt.legend(); plt.xlabel("Steps"); plt.ylabel("Average Reward")
+plt.title("K-Armed Bandit Performance")
+plt.grid(); plt.show()
