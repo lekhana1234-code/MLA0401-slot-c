@@ -1,0 +1,59 @@
+#33) Implement a value-equivalence prediction model to estimate the long-term performance of
+#different investment portfolios. Use historical financial data and machine learning
+#techniques to predict the value equivalence of alternative portfolio allocations. Write a
+#Python program to analyze and compare the predicted performances of various investment strategies.
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+
+# Historical returns (%)
+data = np.array([
+    [8, 5, 3],
+    [10, 6, 4],
+    [7, 4, 5],
+    [12, 8, 3],
+    [9, 5, 4],
+    [11, 7, 5]
+])
+
+# Portfolio allocations
+portfolios = {
+    "Conservative": [0.2, 0.3, 0.5],
+    "Balanced": [0.4, 0.4, 0.2],
+    "Aggressive": [0.6, 0.3, 0.1]
+}
+
+# Calculate historical portfolio returns
+X = np.arange(len(data)).reshape(-1, 1)
+
+results = {}
+
+for name, weights in portfolios.items():
+
+    y = data @ weights
+
+    # Train ML model
+    model = LinearRegression()
+    model.fit(X, y)
+
+    # Predict next periods
+    future = np.arange(len(data), len(data)+5).reshape(-1, 1)
+    prediction = model.predict(future)
+
+    results[name] = prediction
+
+    print(name)
+    print("Predicted Returns:",
+          np.round(prediction, 2))
+    print()
+
+# Compare portfolios
+for name, prediction in results.items():
+    plt.plot(prediction, marker="o", label=name)
+
+plt.xlabel("Future Period")
+plt.ylabel("Predicted Return (%)")
+plt.title("Portfolio Performance Prediction")
+plt.legend()
+plt.grid()
+plt.show()
